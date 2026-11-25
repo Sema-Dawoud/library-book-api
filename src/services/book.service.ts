@@ -1,75 +1,74 @@
 
+
 import type { Book } from "../models/book.model.js";
+import { prisma } from "../lib/prisma.js";
 
-let books: Book[] = [
-  {
-    id: 1,
-    title: "The Hobbit",
-    author: "J.R.R. Tolkien",
-    genre: "Fantasy",
-    available: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 2,
-    title: "Atomic Habits",
-    author: "James Clear",
-    genre: "Self-help",
-    available: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
-
-let nextId = 3;
-
-export const getAllBooks = (): Book[] => {
-  return books;
+type DatabaseBook = {
+  id: number;
+  title: string;
+  author: string;
+  genre: string;
+  available: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
-export const getBookById = (id: number): Book | undefined => {
-  return books.find((book) => book.id === id);
+const formatBook = (book: DatabaseBook): Book => ({
+  ...book,
+  createdAt: book.createdAt.toISOString(),
+  updatedAt: book.updatedAt.toISOString(),
+});
+
+export const getAllBooks = async (): Promise<Book[]> => {
+  const books = await prisma.book.findMany();
+
+  return books.map(formatBook);
 };
 
-export const createBook = (data: Omit<Book, "id" | "createdAt" | "updatedAt">): Book => {
-  const now = new Date().toISOString();
+export const getBookById = async (
+  id: number,
+): Promise<Book | undefined> => {
+  const book = await prisma.book.findUnique({
+    where: { id },
+  });
 
-  const newBook: Book = {
-    id: nextId++,
-    ...data,
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  books.push(newBook);
-  return newBook;
+  return book ? formatBook(book) : undefined;
 };
 
-export const updateBook = (
+export const createBook = async (
+  data: Omit<Book, "id" | "createdAt" | "updatedAt">,
+): Promise<Book> => {
+  const newBook = await prisma.book.create({
+    data,
+  });
+
+  return formatBook(newBook);
+};
+
+export const updateBook = async (
   id: number,
   data: Partial<Omit<Book, "id" | "createdAt" | "updatedAt">>,
-): Book | undefined => {
-  const book = books.find((book) => book.id === id);
+): Promise<Book | undefined> => {
+  const existingBook = await prisma.book.findUnique({
+    where: { id },
+  });
 
-  if (!book) {
+  if (!existingBook) {
     return undefined;
   }
 
-  Object.assign(book, data, {
-    updatedAt: new Date().toISOString(),
+  const updatedBook = await prisma.book.update({
+    where: { id },
+    data,
   });
 
-  return book;
+  return formatBook(updatedBook);
 };
 
-export const deleteBook = (id: number): boolean => {
-  const index = books.findIndex((book) => book.id === id);
+export const deleteBook = async (id: number): Promise<boolean> => {
+  const result = await prisma.book.deleteMany({
+    where: { id },
+  });
 
-  if (index === -1) {
-    return false;
-  }
-
-  books.splice(index, 1);
-  return true;
+  return result.count > 0;
 };

@@ -1,6 +1,6 @@
 # Library Book Management API
 
-A RESTful API built with **Node.js, Express 5, and TypeScript** for managing library books.
+A RESTful API built with **Node.js, Express 5, TypeScript, Prisma ORM, and PostgreSQL** for managing library books.
 
 ## Features
 
@@ -10,7 +10,9 @@ A RESTful API built with **Node.js, Express 5, and TypeScript** for managing lib
 - Update an existing book.
 - Delete a book.
 - Validate request data using Zod.
-- Automatically track book creation and update timestamps.
+- Store book records in PostgreSQL.
+- Automatically generate book IDs and timestamps.
+- Persist data across server restarts.
 - Centralized error handling and error logging.
 - Organized project structure.
 
@@ -28,13 +30,16 @@ Each book contains the following properties:
 | `createdAt` | string | Date and time when the book was created |
 | `updatedAt` | string | Date and time when the book was last updated |
 
-The timestamps are generated automatically by the server.
+The ID and timestamps are generated automatically by the database.
 
 ## Technologies
 
 - Node.js
 - Express 5
 - TypeScript
+- PostgreSQL
+- Supabase
+- Prisma ORM
 - Zod
 - tsx
 
@@ -44,6 +49,39 @@ Clone the repository and install dependencies:
 
 ```bash
 npm install
+```
+
+## Environment Variables
+
+Create a `.env` file in the project root and configure the following variables:
+
+```env
+DATABASE_URL="your_transaction_pooler_connection_string"
+DIRECT_URL="your_session_pooler_connection_string"
+```
+
+Replace the placeholder values with your Supabase PostgreSQL connection strings.
+
+**Important:** Never commit your `.env` file or expose database credentials.
+
+## Database Setup
+
+Generate the Prisma Client:
+
+```bash
+npx prisma generate
+```
+
+Apply database migrations:
+
+```bash
+npx prisma migrate dev --name init
+```
+
+Check migration status:
+
+```bash
+npx prisma migrate status
 ```
 
 ## Running the Project
@@ -101,7 +139,7 @@ Base URL: `http://localhost:3000/api/books`
 }
 ```
 
-The server automatically generates the book ID and timestamps.
+The database automatically generates the book ID and timestamps.
 
 ### Example: Update a Book
 
@@ -121,6 +159,8 @@ The `updatedAt` timestamp changes automatically when a book is updated.
 src/
 ├── controllers/
 │   └── book.controller.ts
+├── lib/
+│   └── prisma.ts
 ├── middlewares/
 │   ├── error.middleware.ts
 │   └── validate.middleware.ts
@@ -132,7 +172,17 @@ src/
 │   └── book.schema.ts
 ├── services/
 │   └── book.service.ts
+├── generated/
+│   └── prisma/
 └── server.ts
+
+prisma/
+├── migrations/
+└── schema.prisma
+
+prisma7.config.ts
+tsconfig.json
+tsconfig.prisma.json
 ```
 
 ## Validation and Error Handling
@@ -142,19 +192,41 @@ src/
 - Invalid book IDs return `400 Bad Request`.
 - Missing books return `404 Not Found`.
 - Unexpected server errors return `500 Internal Server Error`.
+- Successful creation returns `201 Created`.
+- Successful retrieval and updates return `200 OK`.
 - Successful deletion returns `204 No Content`.
-- Errors are logged in the server terminal with timestamps.
+- Empty update requests are rejected.
+- Errors are logged in the server terminal.
 
 ## Data Storage
 
-This project uses in-memory storage.
+This project uses **PostgreSQL** hosted on **Supabase**.
 
-Books are stored in an array and reset to their initial data whenever the server restarts. No external database is used.
+Prisma ORM handles database operations, replacing the original in-memory storage.
+
+Book records are stored persistently in the database and remain available even after the server restarts.
+
+## Testing and Verification
+
+The API endpoints were tested manually using Postman.
+
+The following scenarios were verified:
+
+- Creating a book.
+- Retrieving all books.
+- Retrieving a book by ID.
+- Updating an existing book.
+- Deleting a book.
+- Validating invalid request data.
+- Handling requests for non-existing books.
+- Verifying data persistence after restarting the server.
+
+TypeScript type checking and the production build were also executed successfully.
 
 ## AI Usage
 
 AI tools were used as learning and development assistants during this project.
 
-They helped with understanding concepts, project setup, code explanations, troubleshooting, and documentation.
+They helped with understanding concepts, Prisma and PostgreSQL integration, project setup, code explanations, troubleshooting, and documentation.
 
-The implementation was reviewed and tested manually using Postman. TypeScript type checking and the production build were also executed.
+The implementation was reviewed and tested manually using Postman. The developer verified the API responses, database persistence, TypeScript type checking, and production build.
